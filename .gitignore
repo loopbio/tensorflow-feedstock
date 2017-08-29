@@ -1,0 +1,4 @@
+*.pyc
+
+build_artefacts
+build_logs
