@@ -1,0 +1,15 @@
+diff --git a/configure b/configure
+index 93280dc5f..f4f9e2b13 100755
+--- a/configure
++++ b/configure
+@@ -257,8 +257,8 @@ if [ "$TF_NEED_MKL" == "1" ]; then # TF_NEED_MKL
+ 
+   if [ "$OSNAME" == "Linux" ]; then
+       # Full MKL configuration
+-      MKL_RT_LIB_PATH="lib/intel64/libmkl_rt.so" #${TF_MKL_EXT}#TODO version?
+-      MKL_RT_OMP_LIB_PATH="../compiler/lib/intel64/libiomp5.so" #TODO VERSION?
++      MKL_RT_LIB_PATH="lib/libmkl_rt.so" #${TF_MKL_EXT}#TODO version?
++      MKL_RT_OMP_LIB_PATH="/lib/libiomp5.so" #TODO VERSION?
+ 
+       # MKL-ML configuration
+       MKL_ML_LIB_PATH="lib/libmklml_intel.so" #${TF_MKL_EXT}#TODO version?
