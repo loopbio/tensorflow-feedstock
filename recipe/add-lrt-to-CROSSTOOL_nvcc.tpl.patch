@@ -1,0 +1,15 @@
+diff --git a/third_party/gpus/crosstool/CROSSTOOL_nvcc.tpl b/third_party/gpus/crosstool/CROSSTOOL_nvcc.tpl
+index 05290d647..0145d80ae 100644
+--- a/third_party/gpus/crosstool/CROSSTOOL_nvcc.tpl
++++ b/third_party/gpus/crosstool/CROSSTOOL_nvcc.tpl
+@@ -56,6 +56,10 @@ toolchain {
+   cxx_flag: "-std=c++11"
+   linker_flag: "-Wl,-no-as-needed"
+   linker_flag: "-lstdc++"
++  # Hacky hacks, should localize better
++  linker_flag: "-lrt"
++  linker_flag: "-lpthread"
++  linker_flag: "-lm"
+   linker_flag: "-B/usr/bin/"
+ 
+ %{host_compiler_includes}

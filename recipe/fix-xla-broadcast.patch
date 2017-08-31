@@ -1,0 +1,55 @@
+commit 9e1c4a942fe11bf5233df0b424de1a5f2f6b0e49
+Author: DavidNorman <davidn@graphcore.ai>
+Date:   Sat Aug 26 13:46:53 2017 +0100
+
+    Add a check to the HLO verifier for badly formatted Broadcasts.
+    
+    Also fix up the two cases where the code was creating invalid
+    broadcasts.
+
+diff --git a/tensorflow/compiler/xla/service/hlo_verifier.cc b/tensorflow/compiler/xla/service/hlo_verifier.cc
+index 01fba49bc5..196103c868 100644
+--- a/tensorflow/compiler/xla/service/hlo_verifier.cc
++++ b/tensorflow/compiler/xla/service/hlo_verifier.cc
+@@ -33,6 +33,15 @@ StatusOr<bool> HloVerifier::Run(HloModule* module) {
+               << " computation: " << computation.get();
+         }
+       }
++      if (instruction->opcode() == HloOpcode::kBroadcast) {
++        // If you see this failure then someone has confused the difference
++        // between the HLO broadcast op, and the UserComputation broadcast
++        // op.  See https://groups.google.com/forum/#!topic/xla-dev/9LqijHmTt_I
++        // or ComputationLowerer::Visit()
++        TF_RET_CHECK(instruction->dimensions().size() ==
++                     ShapeUtil::Rank(instruction->operand(0)->shape()))
++                << "Broadcast HLO has invalid number of dimensions.";
++      }
+ 
+       auto previous = instructions.find(instruction->name());
+       TF_RET_CHECK(previous == instructions.end())
+diff --git a/tensorflow/compiler/xla/service/user_computation.cc b/tensorflow/compiler/xla/service/user_computation.cc
+index cfa5c98f59..3067b53949 100644
+--- a/tensorflow/compiler/xla/service/user_computation.cc
++++ b/tensorflow/compiler/xla/service/user_computation.cc
+@@ -2472,7 +2472,7 @@ HloInstruction* ComputationLowerer::ImplicitBroadcastToExplicitBroadcast(
+   // Do explicit broadcast for scalar.
+   if (ShapeUtil::IsScalar(operand->shape())) {
+     return hlo_builder_.AddInstruction(HloInstruction::CreateBroadcast(
+-        broadcast_shape, operand, AsInt64Slice(broadcast_shape.dimensions())));
++        broadcast_shape, operand, {}));
+   }
+   // Do explicit broadcast for degenerate broadcast.
+   std::vector<int64> broadcast_dimensions;
+diff --git a/tensorflow/compiler/xla/tests/multioutput_fusion_test.cc b/tensorflow/compiler/xla/tests/multioutput_fusion_test.cc
+index bba5b5aa04..509d76d0a2 100644
+--- a/tensorflow/compiler/xla/tests/multioutput_fusion_test.cc
++++ b/tensorflow/compiler/xla/tests/multioutput_fusion_test.cc
+@@ -67,7 +67,7 @@ class MultiOutputFusionTest : public HloTestBase {
+         elem_shape0, HloOpcode::kAdd, param0, const0));
+ 
+     HloInstruction* broadcast = builder.AddInstruction(
+-        HloInstruction::CreateBroadcast(elem_shape2, add1, {0, 1}));
++        HloInstruction::CreateBroadcast(elem_shape2, add1, {}));
+ 
+     auto param1 = builder.AddInstruction(
+         HloInstruction::CreateParameter(1, elem_shape2, "1"));

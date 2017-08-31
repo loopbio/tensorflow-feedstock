@@ -1,4 +1,5 @@
 {% set version = "1.3.0" %}
+{% set build_number= "1" %}
 
 package:
   name: tensorflow
@@ -9,73 +10,87 @@ source:
   url: https://github.com/tensorflow/tensorflow/archive/v{{ version }}.tar.gz
   sha256: e1af1bb767b57c3416de0d43a5f74d174c42b85231dffd36f3630173534d4307
   patches:
-    - fix-mkl-so.patch         # [linux]
-    - do-not-use-locate.patch # [linux]
-#  patches:
-    # Add -lrt to the link options list
-    # https://github.com/tensorflow/tensorflow/issues/121
-#    - rt_link_arg.patch  # [linux]
+    - do-not-use-locate.patch                 # [linux]
+    - jemalloc-compiles-with-old-glibc.patch  # [linux]
+    # Too broad, should add only to affected submodules like sampler (maybe one day I care)
+    - add-lrt-to-CROSSTOOL_nvcc.tpl.patch     # [linux]
+    - fix-xla-broadcast.patch                 # [linux]
+    - fix-mkl-so.patch                        # [linux]
+
+    # This does not work anymore, unfortunately
+    # - add-lrt-to-extension-linkopts.patch     # [linux]
 
 build:
-  number: 1
-  #  Building from source on Linux, disable all but a single build
+  number: {{ build_number }}
   skip: True  # [not linux or not py27]
-  entry_points:
-    - tensorboard = tensorflow.tensorboard.tensorboard:main
+  string: gpu_cuda8_cudnn6_mkl_xla_{{ build_number }}
 
 requirements:
+  # See: https://pypi.python.org/pypi/tensorflow
+  # I'm not sure we really need all these libraries
   build:
-    # conda build requirements
+    - python
+
+    # --- conda build requirements
+
     - bazel >=0.4.5
     - pip
-    - python
     - swig
     - unzip
     - zip
     - zlib
-    # To download MKL-DNN
-    - curl
-    # requirements specified by the package itself
+    - curl  # to download MKL-DNN
+
+    # --- tensorflow requirements
+
     - wheel >=0.26
-    - werkzeug >=0.11.10
     - six >=1.10.0
     - protobuf >=3.2.0
-    - numpy  # 1.11.*
-    - mock >=2.0.0      # [py2k]
-    - markdown >=2.6.8
-    - html5lib ==0.9999999
-    - bleach ==1.5.0
+    - numpy >=1.11.*
     - backports.weakref ==1.0rc1
-    - python
 
-    # Look at configure...
-    # TF can compile against requires MKL-ML (aka MKL-DNN), and MKL
+    # For the tests
+    # We should move them out of build.sh and then move this to test requirements
+    - mock >=2.0.0      # [py2k]
+
+    # For MKL, Look at configure...
+    # TF can compile against MKL-ML (aka MKL-DNN), and MKL
     # It looks first for MKL-DNN, which downloads and installs as needed
     # We can let it download it, or use the package from the intel channel
-
     # But this pulls the "intel" feature that screws essentially everything with conda-forge...
     # - mkl-dnn
-
-    # So for the time being we opt for full MKL
-#    - mkl-devel  # Installs mkl and mkl-include
+    #
+    # So for the time being we could opt for full MKL, which (will be) on defaults and does not pull the intel feat
+    # - mkl-devel  # Installs mkl and mkl-include
+    #
+    # Ultimatelly, we can just instruct tensorflow to download and install mkl-dnn
+    # We do so, but then we need to make sure we have a proper package for conda
+    # (and then we need to figure out if there is any trouble on us packaging it, which I do not think so)
 
     - pip
+
   run:
     - python
-    - werkzeug >=0.11.10
     - six >=1.10.0
     - protobuf >=3.2.0
-    - numpy  # >=1.11.0
-    - mock >=2.0.0  # [py2k]
-    - markdown >=2.6.8
-    - html5lib ==0.9999999
-    - bleach ==1.5.0
+    - numpy  >=1.11.0
     - backports.weakref ==1.0rc1
-#    - mkl
+
+    # MKL, read in the build section and act accordingly...
+    # - mkl
+
+    # Tensorboard is not anymore built with tensorflow (starting from 1.3.0)
+    # Make a tensorboard package, move there whatever deps need to be moved and make this package depend on it
+
+    # For the tests
+    # We should move them out of build.sh and then move this to test requirements
+    - mock >=2.0.0  # [py2k]
 
 test:
   imports:
     - tensorflow
+  # Move here tests from the wheel (see my caffe recipe for an example of what it needs)
+  # Check for tfcompile from XLA
 
 about:
   home: http://tensorflow.org/
@@ -83,15 +98,16 @@ about:
   license_family: Apache
   summary: TensorFlow is a machine learning library
   description: |
-    TensorFlow provides multiple APIs.The lowest level API, TensorFlow Core
-    provides you with complete programming control.
+    GPU enabled build of TF with support XLA, MKL and modern instruction sets.
   dev_url: https://github.com/tensorflow/tensorflow
   doc_url: https://www.tensorflow.org/get_started/get_started
   doc_source_url: https://github.com/tensorflow/tensorflow/tree/master/tensorflow/docs_src
 
 extra:
-  recipe-maintainers:
+  original-recipe-maintainers:
     - jjhelmus
     - danielfrg
     - waitingkuo
     - ghego
+  recipe-maintainers:
+    - sdvillal

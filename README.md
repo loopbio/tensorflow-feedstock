@@ -9,8 +9,7 @@ Feedstock license: BSD 3-Clause
 
 Summary: TensorFlow is a machine learning library
 
-TensorFlow provides multiple APIs.The lowest level API, TensorFlow Core
-provides you with complete programming control.
+GPU enabled build of TF with support XLA, MKL and modern instruction sets.
 
 
 Current build status
