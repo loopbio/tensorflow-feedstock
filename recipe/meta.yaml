@@ -13,8 +13,10 @@ source:
     # Makes configure more generic by not requiring locate (this could be interested for a PR upstream)
     - do-not-use-locate.patch                 # [linux]
     # Allow to compile against jemalloc on oldie glibc (still better to use LD_PRELOAD to use a newer version)
+    # Another reason why we might want to disable this: https://github.com/jemalloc/jemalloc/issues/937
     - jemalloc-compiles-with-old-glibc.patch  # [linux]
-    # Too broad, should add only to affected submodules like sampler (maybe one day I care)
+    # Allow to compile with old glibc lacking some symbols.
+    # Too broad, should add only to affected submodules like sampler
     - add-lrt-to-CROSSTOOL_nvcc.tpl.patch     # [linux]
     # This will make it into the next TF release, remove then
     - fix-xla-broadcast.patch                 # [linux]
@@ -23,7 +25,7 @@ source:
 
 build:
   number: {{ build_number }}
-  skip: True  # [not linux or not py27]
+  skip: True  # [not linux]  # or not py27
   string: gpu_cuda8_cudnn6_mkl_xla_{{ build_number }}
 
 requirements:
@@ -40,7 +42,7 @@ requirements:
     - unzip
     - zip
     - zlib
-    - curl  # to download MKL-DNN
+    - curl  # to download MKL-DNN (should move to compile against conda's)
 
     # --- tensorflow requirements
 
@@ -50,23 +52,20 @@ requirements:
     - numpy >=1.11.*
     - backports.weakref ==1.0rc1
 
-    # For the tests
-    # We should move them out of build.sh and then move this to test requirements
-    - mock >=2.0.0      # [py2k]
-
-    # For MKL, Look at configure...
-    # TF can compile against MKL-ML (aka MKL-DNN), and MKL
-    # It looks first for MKL-DNN, which downloads and installs as needed
-    # We can let it download it, or use the package from the intel channel
-    # But this pulls the "intel" feature that screws essentially everything with conda-forge...
+    # MKL Notes.
+    # Looking at configure, TF can compile interchangeably against MKL-ML (aka MKL-DNN),
+    # and "Full" MKL. It looks first for MKL-DNN.
+    #
+    # We can let configure download MKLML from intel's github project,
+    # or use the package from the intel channel. The problem with the latter is that
+    # it pulls the "intel" feature, which in turn screws essentially everything with conda-forge...
     # - mkl-dnn
     #
     # So for the time being we could opt for full MKL, which (will be) on defaults and does not pull the intel feat
     # - mkl-devel  # Installs mkl and mkl-include
     #
     # Ultimatelly, we can just instruct tensorflow to download and install mkl-dnn
-    # We do so, but then we need to make sure we have a proper package for conda
-    # (and then we need to figure out if there is any trouble on us packaging it, which I do not think so)
+    # We do so, but then we need to make sure we have a proper package at runtime.
 
     - pip
 
@@ -76,22 +75,20 @@ requirements:
     - protobuf >=3.2.0
     - numpy  >=1.11.0
     - backports.weakref ==1.0rc1
+    - mkl  # we build against MKL-DNN atm, but they are interchangeable
 
-    # MKL, read in the build section and act accordingly...
-    # - mkl
-
-    # Tensorboard is not anymore built with tensorflow (starting from 1.3.0)
-    # Make a tensorboard package, move there whatever deps need to be moved and make this package depend on it
-
-    # For the tests
-    # We should move them out of build.sh and then move this to test requirements
-    - mock >=2.0.0  # [py2k]
 
 test:
+
+  # Copy here anything we would need for the tests at run_test.sh
+  # source_files:
+  #  - python/caffe/test
+
+  requires:
+    - mock >=2.0.0  # [py2k]
+
   imports:
     - tensorflow
-  # Move here tests from the wheel (see my caffe recipe for an example of what it needs)
-  # Check for tfcompile from XLA
 
 about:
   home: http://tensorflow.org/

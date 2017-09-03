@@ -2,7 +2,6 @@ channels:
   sources:
     - loopbio
     - conda-forge
-    - intel
     - defaults
   targets:
     - [loopbio, main]
@@ -11,5 +10,5 @@ github:
   user_or_org: 'loopbio'
 
 docker:
-  image: sdvillal/linux-anvil-cudnn
+  image: loopbio/linux-anvil-cudnn
   executable: nvidia-docker
