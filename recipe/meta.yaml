@@ -26,7 +26,7 @@ source:
 build:
   number: {{ build_number }}
   skip: True  # [not linux]  # or not py27
-  string: gpu_cuda8_cudnn6_mkl_xla_{{ build_number }}
+  string: py{{py}}_gpu_cuda8_cudnn6_mkl_xla_{{ build_number }}
 
 requirements:
   # See: https://pypi.python.org/pypi/tensorflow
